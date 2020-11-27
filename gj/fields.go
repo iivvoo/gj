@@ -8,8 +8,8 @@ import (
 )
 
 type Field interface {
-	Value(interface{}) ([]byte, error)                   // Rename to Encode
-	SetMember(target interface{}, val interface{}) error // SetMember
+	Encode(interface{}) ([]byte, error) // Rename to Encode
+	SetMember(target interface{}, val interface{}) error
 	typeMatch(k reflect.Kind) bool
 	FromName() string
 	ToName() string
@@ -50,7 +50,7 @@ func StringField(f, t string) *stringField {
 	return &stringField{&BaseField{f, t}}
 }
 
-func (f *stringField) Value(v interface{}) ([]byte, error) {
+func (f *stringField) Encode(v interface{}) ([]byte, error) {
 	vv, ok := v.(string)
 	if !ok {
 		return nil, fmt.Errorf("Could not convert to string: %v", v)
@@ -92,7 +92,7 @@ func NumberField(f, t string) *numberField {
 	return &numberField{&BaseField{f, t}}
 }
 
-func (f numberField) Value(v interface{}) ([]byte, error) {
+func (f numberField) Encode(v interface{}) ([]byte, error) {
 	// Bwuh, need to deal with all types of numbers
 	vv, ok := v.(int)
 	if !ok {

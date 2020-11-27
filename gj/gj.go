@@ -67,7 +67,7 @@ func (s *Serializer) Encode(d interface{}) ([]byte, error) {
 			panic("Encode not found " + name)
 		}
 		ff := e.FieldByName(name)
-		val, err := f.Value(ff.Interface())
+		val, err := f.Encode(ff.Interface())
 		if err != nil {
 			panic(err)
 		}
