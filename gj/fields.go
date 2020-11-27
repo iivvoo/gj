@@ -55,7 +55,7 @@ func (f *stringField) Encode(v interface{}) ([]byte, error) {
 	if !ok {
 		return nil, fmt.Errorf("Could not convert to string: %v", v)
 	}
-	return []byte(vv), nil
+	return []byte("\"" + vv + "\""), nil
 }
 
 func (f *stringField) SetMember(target interface{}, val interface{}) error {

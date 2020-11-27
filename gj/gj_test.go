@@ -85,6 +85,23 @@ func TestSerializerCreation(t *testing.T) {
 	})
 }
 
+func TestSerialization(t *testing.T) {
+	t.Run("Test simple success", func(t *testing.T) {
+		assert := assert.New(t)
+
+		type S struct {
+			A string
+			B int
+		}
+		serializer, err := NewSerializerTemplate(StringField("A", "a"), NumberField("B", "x")).Serializer(&S{})
+		assert.NoError(err)
+
+		res, err := serializer.Encode(&S{"Hello", 42})
+		assert.NoError(err)
+
+		assert.Equal(`{"a":"Hello","x":42}`, string(res))
+	})
+}
 func TestSerializerTypeMatch(t *testing.T) {
 	type A struct{ A string }
 	type B struct{ A string }

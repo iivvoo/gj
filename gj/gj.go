@@ -3,8 +3,8 @@ package gj
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"reflect"
+	"strings"
 )
 
 type SerializerTemplate struct {
@@ -56,24 +56,31 @@ func (st *SerializerTemplate) Serializer(d interface{}) (*Serializer, error) {
 func (s *Serializer) Encode(d interface{}) ([]byte, error) {
 	// Assume always struct for now
 	// probbaly check if d is of same type we validated for
-	r := "{"
+
+	targetType := reflect.TypeOf(d)
+
+	if targetType != s.forType {
+		return nil, ErrDifferentType
+	}
 
 	e := reflect.ValueOf(d).Elem()
-	// typeOfE := e.Type()
+
+	parts := []string{}
 
 	for name, f := range s.fieldmap {
 		_, found := s.fieldmap2[name]
 		if !found {
-			panic("Encode not found " + name)
+			panic("Internal Error: Encode not found " + name)
 		}
 		ff := e.FieldByName(name)
 		val, err := f.Encode(ff.Interface())
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
-		r += "\"" + f.ToName() + "\":\"" + string(val) + "\","
+		// Strings should quote themselves!
+		parts = append(parts, "\""+f.ToName()+"\":"+string(val))
 	}
-	r += "}"
+	r := "{" + strings.Join(parts, ",") + "}"
 	return []byte(r), nil
 }
 
@@ -100,7 +107,6 @@ func (s *Serializer) Decode(raw []byte, target interface{}) error {
 
 	targetType := reflect.TypeOf(target)
 
-	fmt.Printf("TYPE %T %v -- %T %v\n", s.forType, s.forType, targetType, targetType)
 	if targetType != s.forType {
 		return ErrDifferentType
 	}
