@@ -51,9 +51,16 @@ func (f *Field) Value(v interface{}) ([]byte, error) {
 	}
 }
 
+// ErrFieldDataIncorrectType means the json data does not match the field
 var ErrFieldDataIncorrectType = errors.New("Data is of incorrect type")
+
+// ErrFieldDataOverflow means the json data would overflow the field
 var ErrFieldDataOverflow = errors.New("Data would overflow field")
+
+// ErrFieldUnsettable means the field is not settable
 var ErrFieldUnsettable = errors.New("Field is not settable")
+
+// ErrFieldIncorrectType means the field does not match the expcted type (impossible?)
 var ErrFieldIncorrectType = errors.New("Field is of wrong type")
 
 func (f *Field) setProp(target interface{}, val interface{}) error {
@@ -63,6 +70,7 @@ func (f *Field) setProp(target interface{}, val interface{}) error {
 	// So this is an addressable field, not a struct field
 	structField := s.FieldByName(f.f)
 	if !structField.CanSet() {
+		// unlikely if we properly validate when creating the serializer
 		return ErrFieldUnsettable
 	}
 
@@ -73,6 +81,7 @@ func (f *Field) setProp(target interface{}, val interface{}) error {
 			return ErrFieldDataIncorrectType
 		}
 		if structField.Kind() != reflect.String {
+			// unlikely if we properly validate when creating the serializer
 			return ErrFieldIncorrectType
 		}
 		structField.SetString(vv)
@@ -96,6 +105,15 @@ func (f *Field) setProp(target interface{}, val interface{}) error {
 
 	return nil
 }
+func (f *Field) typeMatch(k reflect.Kind) bool {
+	switch f.ftype {
+	case StringFieldType:
+		return k == reflect.String
+	case NumberFieldType:
+		return k == reflect.Int
+	}
+	return false
+}
 
 type SerializerTemplate struct {
 	fields []*Field
@@ -109,6 +127,10 @@ type Serializer struct {
 	fieldmap2 map[string]reflect.Value
 }
 
+var ErrMemberFieldNotFound = errors.New("Member field not found on struct")
+var ErrMemberFieldTypeMismatch = errors.New("Serializer field type mismatch Member field")
+var ErrDuplicateField = errors.New("Duplicate field")
+
 // Serializer builds a serializer out of this template
 func (st *SerializerTemplate) Serializer(d interface{}) (*Serializer, error) {
 	// Validate if fields exist
@@ -120,32 +142,24 @@ func (st *SerializerTemplate) Serializer(d interface{}) (*Serializer, error) {
 		fieldmap:  make(map[string]*Field),
 		fieldmap2: make(map[string]reflect.Value)}
 
+	e := reflect.ValueOf(d).Elem()
+	s.forType = reflect.TypeOf(d)
+	// Iterate over the serializer fields and store them in a map
 	for _, f := range st.fields {
 		if _, exists := s.fieldmap[f.f]; exists {
-			return nil, fmt.Errorf("Field already mapped: %s", f.f)
+			return nil, ErrDuplicateField
 		}
 		s.fieldmap[f.f] = f
-	}
-
-	/*
-		reflect.TypeOf() preserves pointerness, *a,
-		reflect.ValueOf(d).Elem() returns the dereferenced value, because of Elem
-	*/
-	e := reflect.ValueOf(d).Elem()
-	typeOfE := e.Type()
-	s.forType = reflect.TypeOf(d)
-	fmt.Printf("TYPE %T %v\n", typeOfE, typeOfE)
-
-	for i := 0; i < e.NumField(); i++ {
-		ef := e.Field(i)
-		name := typeOfE.Field(i).Name
-
-		if _, found := s.fieldmap[name]; !found {
-			// panic("Field not found " + name)
-		} else {
-			s.fieldmap2[name] = ef
+		ef := e.FieldByName(f.f)
+		if !ef.IsValid() {
+			return nil, ErrMemberFieldNotFound
 		}
+		if !f.typeMatch(ef.Kind()) {
+			return nil, ErrMemberFieldTypeMismatch
+		}
+		s.fieldmap2[f.f] = ef
 	}
+
 	return s, nil
 }
 
