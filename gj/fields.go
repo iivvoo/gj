@@ -8,8 +8,8 @@ import (
 )
 
 type Field interface {
-	Value(interface{}) ([]byte, error)                 // Rename to Encode
-	setProp(target interface{}, val interface{}) error // SetMember
+	Value(interface{}) ([]byte, error)                   // Rename to Encode
+	SetMember(target interface{}, val interface{}) error // SetMember
 	typeMatch(k reflect.Kind) bool
 	FromName() string
 	ToName() string
@@ -58,7 +58,7 @@ func (f *stringField) Value(v interface{}) ([]byte, error) {
 	return []byte(vv), nil
 }
 
-func (f *stringField) setProp(target interface{}, val interface{}) error {
+func (f *stringField) SetMember(target interface{}, val interface{}) error {
 	// move to BaseField?
 	ps := reflect.ValueOf(target)
 	s := ps.Elem()
@@ -101,7 +101,7 @@ func (f numberField) Value(v interface{}) ([]byte, error) {
 	return []byte(strconv.Itoa(vv)), nil
 }
 
-func (f *numberField) setProp(target interface{}, val interface{}) error {
+func (f *numberField) SetMember(target interface{}, val interface{}) error {
 	ps := reflect.ValueOf(target)
 	s := ps.Elem()
 

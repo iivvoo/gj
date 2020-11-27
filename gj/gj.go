@@ -109,7 +109,7 @@ func (s *Serializer) Decode(raw []byte, target interface{}) error {
 
 	for _, f := range s.fieldmap {
 		if v, found := targetMap[f.ToName()]; found {
-			if err := f.setProp(target, v); err != nil {
+			if err := f.SetMember(target, v); err != nil {
 				return err
 			}
 		}
