@@ -8,14 +8,14 @@ import (
 )
 
 type SerializerTemplate struct {
-	fields []*Field
+	fields []Field
 }
 
 type Serializer struct {
 	forType  reflect.Type
 	template *SerializerTemplate
 	// some sort of map
-	fieldmap  map[string]*Field
+	fieldmap  map[string]Field
 	fieldmap2 map[string]reflect.Value
 }
 
@@ -29,25 +29,25 @@ func (st *SerializerTemplate) Serializer(d interface{}) (*Serializer, error) {
 	// Everything will probably be recursive, e.g. Fields will validate as well
 
 	s := &Serializer{template: st,
-		fieldmap:  make(map[string]*Field),
+		fieldmap:  make(map[string]Field),
 		fieldmap2: make(map[string]reflect.Value)}
 
 	e := reflect.ValueOf(d).Elem()
 	s.forType = reflect.TypeOf(d)
 	// Iterate over the serializer fields and store them in a map
 	for _, f := range st.fields {
-		if _, exists := s.fieldmap[f.f]; exists {
+		if _, exists := s.fieldmap[f.FromName()]; exists {
 			return nil, ErrDuplicateField
 		}
-		s.fieldmap[f.f] = f
-		ef := e.FieldByName(f.f)
+		s.fieldmap[f.FromName()] = f
+		ef := e.FieldByName(f.FromName())
 		if !ef.IsValid() {
 			return nil, ErrMemberFieldNotFound
 		}
 		if !f.typeMatch(ef.Kind()) {
 			return nil, ErrMemberFieldTypeMismatch
 		}
-		s.fieldmap2[f.f] = ef
+		s.fieldmap2[f.FromName()] = ef
 	}
 
 	return s, nil
@@ -71,7 +71,7 @@ func (s *Serializer) Encode(d interface{}) ([]byte, error) {
 		if err != nil {
 			panic(err)
 		}
-		r += "\"" + f.t + "\":\"" + string(val) + "\","
+		r += "\"" + f.ToName() + "\":\"" + string(val) + "\","
 	}
 	r += "}"
 	return []byte(r), nil
@@ -108,7 +108,7 @@ func (s *Serializer) Decode(raw []byte, target interface{}) error {
 	// in the returned json.
 
 	for _, f := range s.fieldmap {
-		if v, found := targetMap[f.t]; found {
+		if v, found := targetMap[f.ToName()]; found {
 			if err := f.setProp(target, v); err != nil {
 				return err
 			}
@@ -119,7 +119,7 @@ func (s *Serializer) Decode(raw []byte, target interface{}) error {
 }
 
 // NewSerializerTemplate creates a new SerializerTemplate based on the supplied (fields) config
-func NewSerializerTemplate(fields ...*Field) *SerializerTemplate {
+func NewSerializerTemplate(fields ...Field) *SerializerTemplate {
 	return &SerializerTemplate{
 		fields: fields,
 	}
