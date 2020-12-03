@@ -99,8 +99,32 @@ func TestSerialization(t *testing.T) {
 		res, err := serializer.Encode(&S{"Hello", 42})
 		assert.NoError(err)
 
-		assert.Equal(`{"a":"Hello","x":42}`, string(res))
+		// This randomly fails because map order is random. In stead, create assert that matches json?
+		assert.JSONEq(`{"a":"Hello","x":42}`, string(res))
 	})
+
+	// t.Run("Test nesting", func(t *testing.T) {
+	// 	assert := assert.New(t)
+
+	// 	type Q struct {
+	// 		A string
+	// 	}
+	// 	type S struct {
+	// 		A string
+	// 		Q *Q
+	// 	}
+	// 	qTemplate := NewSerializerTemplate(StringField("Q", "q"))
+	// 	qSerializer, err := qTemplate.Serializer(&Q{})
+
+	// 	sTemplate := NewSerializerTemplate(StringField("A", "a"), NestedField("Q", "q", qSerializer))
+	// 	sSerializer, err := sTemplate.Serializer(&S{})
+
+	// 	res, err := sSerializer.Encode(&S{"Hello", &Q{"World"}})
+	// 	assert.NoError(err)
+
+	// 	assert.Equal(`{"a":"Hello","q":{"a":"World"}}`, string(res))
+
+	// })
 }
 func TestSerializerTypeMatch(t *testing.T) {
 	type A struct{ A string }
@@ -158,3 +182,10 @@ func TestSerializerDeserialize(t *testing.T) {
 		assert.EqualValues(ErrFieldDataIncorrectType, err)
 	})
 }
+
+/*
+ * Important corner cases:
+ *
+ * - Do we need to HTML-safe encode json? (see encoding/json)
+ * - Properly escape keys and strings (encoding/json/encode.go encodeState:string
+ */
