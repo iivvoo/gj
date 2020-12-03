@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"reflect"
-	"strings"
 )
 
 type SerializerTemplate struct {
@@ -65,7 +64,7 @@ func (s *Serializer) Encode(d interface{}) ([]byte, error) {
 
 	e := reflect.ValueOf(d).Elem()
 
-	parts := []string{}
+	collector := make(map[string]interface{})
 
 	for name, f := range s.fieldmap {
 		_, found := s.fieldmap2[name]
@@ -77,11 +76,10 @@ func (s *Serializer) Encode(d interface{}) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		// Strings should quote themselves!
-		parts = append(parts, "\""+f.ToName()+"\":"+string(val))
+		collector[f.ToName()] = val
 	}
-	r := "{" + strings.Join(parts, ",") + "}"
-	return []byte(r), nil
+	encoded, err := json.Marshal(collector)
+	return encoded, err
 }
 
 // ErrDifferentType is returned if the target does not match the serializer type

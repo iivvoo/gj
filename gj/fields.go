@@ -4,11 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strconv"
 )
 
 type Field interface {
-	Encode(interface{}) ([]byte, error) // Rename to Encode
+	Encode(interface{}) (interface{}, error) // Rename to Encode
 	SetMember(target interface{}, val interface{}) error
 	typeMatch(k reflect.Kind) bool
 	FromName() string
@@ -50,12 +49,13 @@ func StringField(f, t string) *stringField {
 	return &stringField{&BaseField{f, t}}
 }
 
-func (f *stringField) Encode(v interface{}) ([]byte, error) {
+func (f *stringField) Encode(v interface{}) (interface{}, error) {
 	vv, ok := v.(string)
 	if !ok {
 		return nil, fmt.Errorf("Could not convert to string: %v", v)
 	}
-	return []byte("\"" + vv + "\""), nil
+
+	return vv, nil
 }
 
 func (f *stringField) SetMember(target interface{}, val interface{}) error {
@@ -92,13 +92,13 @@ func NumberField(f, t string) *numberField {
 	return &numberField{&BaseField{f, t}}
 }
 
-func (f numberField) Encode(v interface{}) ([]byte, error) {
+func (f numberField) Encode(v interface{}) (interface{}, error) {
 	// Bwuh, need to deal with all types of numbers
 	vv, ok := v.(int)
 	if !ok {
 		return nil, fmt.Errorf("Could not convert to int: %v", v)
 	}
-	return []byte(strconv.Itoa(vv)), nil
+	return vv, nil
 }
 
 func (f *numberField) SetMember(target interface{}, val interface{}) error {
