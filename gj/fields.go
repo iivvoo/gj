@@ -9,7 +9,7 @@ import (
 type Field interface {
 	Encode(interface{}) (interface{}, error)
 	SetMember(target interface{}, val interface{}) error // Decode
-	typeMatch(k reflect.Value) bool
+	typeMatch(k reflect.Type) bool
 	FromName() string
 	ToName() string
 }
@@ -81,7 +81,7 @@ func (f *stringField) SetMember(target interface{}, val interface{}) error {
 }
 
 // Could be in BaseField, with value stored in struct data
-func (f *stringField) typeMatch(k reflect.Value) bool {
+func (f *stringField) typeMatch(k reflect.Type) bool {
 	return k.Kind() == reflect.String
 }
 
@@ -129,7 +129,7 @@ func (f *numberField) SetMember(target interface{}, val interface{}) error {
 }
 
 // Could be in BaseField, with value stored in struct data
-func (f *numberField) typeMatch(k reflect.Value) bool {
+func (f *numberField) typeMatch(k reflect.Type) bool {
 	return k.Kind() == reflect.Int
 }
 
@@ -158,7 +158,7 @@ func (s *structField) Encode(v interface{}) (interface{}, error) {
 func (s *structField) SetMember(target interface{}, val interface{}) error {
 	return nil
 }
-func (s *structField) typeMatch(k reflect.Value) bool {
+func (s *structField) typeMatch(k reflect.Type) bool {
 	// So it's a struct, but is it the expected type? E.g. main.FooStruct
 	// could even be a while?
 	if k.Kind() == reflect.Ptr {

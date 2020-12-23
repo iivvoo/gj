@@ -16,7 +16,7 @@ type Serializer struct {
 	template *SerializerTemplate
 	// some sort of map
 	fieldmap  map[string]Field
-	fieldmap2 map[string]reflect.Value
+	fieldmap2 map[string]reflect.Type
 }
 
 var ErrMemberFieldNotFound = errors.New("Member field not found on struct")
@@ -30,9 +30,10 @@ func (st *SerializerTemplate) Serializer(d interface{}) (*Serializer, error) {
 
 	s := &Serializer{template: st,
 		fieldmap:  make(map[string]Field),
-		fieldmap2: make(map[string]reflect.Value)}
+		fieldmap2: make(map[string]reflect.Type)}
 
-	e := reflect.ValueOf(d).Elem()
+	// Elem() assume's it's a pointer.
+	e := reflect.TypeOf(d).Elem()
 	s.forType = reflect.TypeOf(d)
 	// Iterate over the serializer fields and store them in a map
 	for _, f := range st.fields {
@@ -40,14 +41,14 @@ func (st *SerializerTemplate) Serializer(d interface{}) (*Serializer, error) {
 			return nil, ErrDuplicateField
 		}
 		s.fieldmap[f.FromName()] = f
-		ef := e.FieldByName(f.FromName())
-		if !ef.IsValid() {
+		ef, found := e.FieldByName(f.FromName())
+		if !found {
 			return nil, ErrMemberFieldNotFound
 		}
-		if !f.typeMatch(ef) {
+		if !f.typeMatch(ef.Type) {
 			return nil, ErrMemberFieldTypeMismatch
 		}
-		s.fieldmap2[f.FromName()] = ef
+		s.fieldmap2[f.FromName()] = ef.Type
 	}
 
 	return s, nil
