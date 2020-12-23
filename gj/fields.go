@@ -7,9 +7,9 @@ import (
 )
 
 type Field interface {
-	Encode(interface{}) (interface{}, error) // Rename to Encode
-	SetMember(target interface{}, val interface{}) error
-	typeMatch(k reflect.Kind) bool
+	Encode(interface{}) (interface{}, error)
+	SetMember(target interface{}, val interface{}) error // Decode
+	typeMatch(k reflect.Value) bool
 	FromName() string
 	ToName() string
 }
@@ -39,9 +39,6 @@ func (b *BaseField) ToName() string {
 }
 
 type stringField struct {
-	*BaseField
-}
-type numberField struct {
 	*BaseField
 }
 
@@ -84,8 +81,12 @@ func (f *stringField) SetMember(target interface{}, val interface{}) error {
 }
 
 // Could be in BaseField, with value stored in struct data
-func (f *stringField) typeMatch(k reflect.Kind) bool {
-	return k == reflect.String
+func (f *stringField) typeMatch(k reflect.Value) bool {
+	return k.Kind() == reflect.String
+}
+
+type numberField struct {
+	*BaseField
 }
 
 func NumberField(f, t string) *numberField {
@@ -125,11 +126,45 @@ func (f *numberField) SetMember(target interface{}, val interface{}) error {
 		return ErrFieldIncorrectType
 	}
 	return nil
-
-	return nil
 }
 
 // Could be in BaseField, with value stored in struct data
-func (f *numberField) typeMatch(k reflect.Kind) bool {
-	return k == reflect.Int
+func (f *numberField) typeMatch(k reflect.Value) bool {
+	return k.Kind() == reflect.Int
+}
+
+type structField struct {
+	*BaseField
+	s *Serializer
+}
+
+func StructField(f, t string, s *Serializer) *structField {
+	return &structField{&BaseField{f, t}, s}
+}
+
+/*
+	Encode(interface{}) (interface{}, error) // Rename to Encode
+	SetMember(target interface{}, val interface{}) error
+	typeMatch(k reflect.Kind) bool
+
+SetMember is eigenlijk een Decode()
+
+*/
+
+func (s *structField) Encode(v interface{}) (interface{}, error) {
+	fmt.Printf("###### %#v\n", s.s)
+	return s.s.EncodeBase(v)
+}
+func (s *structField) SetMember(target interface{}, val interface{}) error {
+	return nil
+}
+func (s *structField) typeMatch(k reflect.Value) bool {
+	// So it's a struct, but is it the expected type? E.g. main.FooStruct
+	// could even be a while?
+	if k.Kind() == reflect.Ptr {
+		fmt.Println("Elem")
+		k = k.Elem()
+	}
+	fmt.Printf("%T %v %v\n", k, k, k.Kind())
+	return k.Kind() == reflect.Struct
 }

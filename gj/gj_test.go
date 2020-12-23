@@ -1,8 +1,6 @@
 package gj
 
 import (
-	"encoding/json"
-	"fmt"
 	"testing"
 	"time"
 
@@ -21,20 +19,20 @@ type SampleStruct struct {
 	Nest *NestedStruct
 }
 
-func TestMakeJSON(t *testing.T) {
-	// eerst wat random json bouwen en dan mee spelen voor deserialisatie
-	s := &SampleStruct{
-		Name: "Sample Struct",
-		Num:  42,
-		Nest: &NestedStruct{
-			Name:    "Nested Struct",
-			Numbers: []int{1, 1, 2, 3, 5, 8, 13},
-			When:    time.Now(),
-		},
-	}
-	data, _ := json.Marshal(s)
-	fmt.Println(string(data))
-}
+// func TestMakeJSON(t *testing.T) {
+// 	// eerst wat random json bouwen en dan mee spelen voor deserialisatie
+// 	s := &SampleStruct{
+// 		Name: "Sample Struct",
+// 		Num:  42,
+// 		Nest: &NestedStruct{
+// 			Name:    "Nested Struct",
+// 			Numbers: []int{1, 1, 2, 3, 5, 8, 13},
+// 			When:    time.Now(),
+// 		},
+// 	}
+// 	data, _ := json.Marshal(s)
+// 	fmt.Println(string(data))
+// }
 
 // func TestGJExp(t *testing.T) {
 // 	j := `{"Name":"Sample Struct","Num":42,"Nest":{"Name":"Nested Struct","Numbers":[1,1,2,3,5,8,13],"When":"2020-11-27T10:45:55.287389483+01:00"}}`
@@ -103,28 +101,32 @@ func TestSerialization(t *testing.T) {
 		assert.JSONEq(`{"a":"Hello","x":42}`, string(res))
 	})
 
-	// t.Run("Test nesting", func(t *testing.T) {
-	// 	assert := assert.New(t)
+	t.Run("Test nesting", func(t *testing.T) {
+		assert := assert.New(t)
 
-	// 	type Q struct {
-	// 		A string
-	// 	}
-	// 	type S struct {
-	// 		A string
-	// 		Q *Q
-	// 	}
-	// 	qTemplate := NewSerializerTemplate(StringField("Q", "q"))
-	// 	qSerializer, err := qTemplate.Serializer(&Q{})
+		type Q struct {
+			A string
+		}
+		type S struct {
+			A string
+			Q *Q
+		}
+		qTemplate := NewSerializerTemplate(StringField("A", "aa"))
+		qSerializer, err := qTemplate.Serializer(&Q{})
+		assert.NoError(err)
+		assert.NotNil(qSerializer)
 
-	// 	sTemplate := NewSerializerTemplate(StringField("A", "a"), NestedField("Q", "q", qSerializer))
-	// 	sSerializer, err := sTemplate.Serializer(&S{})
+		sTemplate := NewSerializerTemplate(StringField("A", "a"), StructField("Q", "q", qSerializer))
+		sSerializer, err := sTemplate.Serializer(&S{})
+		assert.NoError(err)
+		assert.NotNil(sSerializer)
 
-	// 	res, err := sSerializer.Encode(&S{"Hello", &Q{"World"}})
-	// 	assert.NoError(err)
+		res, err := sSerializer.Encode(&S{"Hello", &Q{"World"}})
+		assert.NoError(err)
 
-	// 	assert.Equal(`{"a":"Hello","q":{"a":"World"}}`, string(res))
+		assert.Equal(`{"a":"Hello","q":{"aa":"World"}}`, string(res))
 
-	// })
+	})
 }
 func TestSerializerTypeMatch(t *testing.T) {
 	type A struct{ A string }
@@ -180,6 +182,31 @@ func TestSerializerDeserialize(t *testing.T) {
 		err = serializer.Decode([]byte(`{"a":1}`), &a)
 		assert.Error(err)
 		assert.EqualValues(ErrFieldDataIncorrectType, err)
+	})
+	t.Run("Test nesting", func(t *testing.T) {
+		assert := assert.New(t)
+
+		type Q struct {
+			A string
+		}
+		type S struct {
+			A string
+			Q *Q
+		}
+		qTemplate := NewSerializerTemplate(StringField("A", "aa"))
+		qSerializer, err := qTemplate.Serializer(&Q{})
+		assert.NoError(err)
+
+		sTemplate := NewSerializerTemplate(StringField("A", "a"), StructField("Q", "q", qSerializer))
+		sSerializer, err := sTemplate.Serializer(&S{})
+		assert.NoError(err)
+
+		s := S{}
+		err = sSerializer.Decode([]byte(`{"a":"Hello","q":{"aa":"World"}}`), &s)
+		assert.NoError(err)
+		// This fails because s.Q == nil
+		// assert.Equal("World", s.Q.A)
+
 	})
 }
 

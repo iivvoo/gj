@@ -3,6 +3,7 @@ package gj
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 )
 
@@ -43,7 +44,7 @@ func (st *SerializerTemplate) Serializer(d interface{}) (*Serializer, error) {
 		if !ef.IsValid() {
 			return nil, ErrMemberFieldNotFound
 		}
-		if !f.typeMatch(ef.Kind()) {
+		if !f.typeMatch(ef) {
 			return nil, ErrMemberFieldTypeMismatch
 		}
 		s.fieldmap2[f.FromName()] = ef
@@ -52,12 +53,10 @@ func (st *SerializerTemplate) Serializer(d interface{}) (*Serializer, error) {
 	return s, nil
 }
 
-func (s *Serializer) Encode(d interface{}) ([]byte, error) {
-	// Assume always struct for now
-	// probbaly check if d is of same type we validated for
-
+func (s *Serializer) EncodeBase(d interface{}) (interface{}, error) {
 	targetType := reflect.TypeOf(d)
 
+	fmt.Printf("-> %#v %#v\n", s, s.forType)
 	if targetType != s.forType {
 		return nil, ErrDifferentType
 	}
@@ -78,7 +77,18 @@ func (s *Serializer) Encode(d interface{}) ([]byte, error) {
 		}
 		collector[f.ToName()] = val
 	}
-	encoded, err := json.Marshal(collector)
+	return collector, nil
+}
+
+func (s *Serializer) Encode(d interface{}) ([]byte, error) {
+	// Assume always struct for now
+	// probbaly check if d is of same type we validated for
+
+	raw, err := s.EncodeBase(d)
+	if err != nil {
+		return nil, err
+	}
+	encoded, err := json.Marshal(raw)
 	return encoded, err
 }
 
