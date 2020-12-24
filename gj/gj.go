@@ -47,12 +47,6 @@ func (st *SerializerTemplate) Serializer(d interface{}) (*Serializer, error) {
 	s.forType = reflect.TypeOf(d)
 	// Iterate over the serializer fields and store them in a map
 	for _, f := range st.fields {
-		// This would mean the duplicate was already in the template,
-		// we should assert it there?
-
-		if _, exists := s.fieldmap[f.FromName()]; exists {
-			return nil, ErrDuplicateField
-		}
 		s.fieldmap[f.FromName()] = f
 		ef, found := e.FieldByName(f.FromName())
 		if !found {

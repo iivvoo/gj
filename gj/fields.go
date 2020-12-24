@@ -136,11 +136,10 @@ func (f *numberField) typeMatch(k reflect.Type) bool {
 type structField struct {
 	*BaseField
 	s *Serializer
-	t reflect.Type
 }
 
 func StructField(f, t string, s *Serializer) *structField {
-	return &structField{&BaseField{f, t}, s, nil}
+	return &structField{&BaseField{f, t}, s}
 }
 
 func (f *structField) Encode(v interface{}) (interface{}, error) {
@@ -159,7 +158,13 @@ func (f *structField) Decode(target interface{}, val interface{}) error {
 
 	if structField.Kind() == reflect.Ptr {
 		if structField.IsNil() {
-			structField.Set(reflect.New(f.t))
+			to := reflect.TypeOf(target).Elem()
+			sf, found := to.FieldByName(f.FromName())
+			if !found {
+				return ErrMemberFieldNotFound
+			}
+			structField.Set(reflect.New(sf.Type.Elem()))
+			// structField.Set(reflect.New(f.t))
 			// We will want to set this value on s
 		}
 	} else {
@@ -175,10 +180,7 @@ func (f *structField) typeMatch(k reflect.Type) bool {
 	// So it's a struct, but is it the expected type? E.g. main.FooStruct
 	// could even be a while?
 	if k.Kind() == reflect.Ptr {
-		fmt.Println("Elem")
 		k = k.Elem()
 	}
-	fmt.Printf("%T %v %v\n", k, k, k.Kind())
-	f.t = k
 	return k.Kind() == reflect.Struct
 }
