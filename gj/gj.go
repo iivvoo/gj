@@ -118,7 +118,7 @@ func (s *Serializer) DecodeBase(val interface{}, target interface{}) error {
 		// targetmap is effectively what json.Unmarshal produced as a map[string]interface{}
 		if v, found := targetMap[f.ToName()]; found {
 			// So v is the actual value decoded
-			if err := f.SetMember(target, v); err != nil {
+			if err := f.Decode(target, v); err != nil {
 				return err
 			}
 		}

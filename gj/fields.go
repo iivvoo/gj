@@ -8,7 +8,7 @@ import (
 
 type Field interface {
 	Encode(interface{}) (interface{}, error)
-	SetMember(target interface{}, val interface{}) error // Decode
+	Decode(target interface{}, val interface{}) error // Decode
 	typeMatch(k reflect.Type) bool
 	FromName() string
 	ToName() string
@@ -55,7 +55,7 @@ func (f *stringField) Encode(v interface{}) (interface{}, error) {
 	return vv, nil
 }
 
-func (f *stringField) SetMember(target interface{}, val interface{}) error {
+func (f *stringField) Decode(target interface{}, val interface{}) error {
 	// move to BaseField?
 	ps := reflect.ValueOf(target)
 	s := ps.Elem()
@@ -102,7 +102,7 @@ func (f numberField) Encode(v interface{}) (interface{}, error) {
 	return vv, nil
 }
 
-func (f *numberField) SetMember(target interface{}, val interface{}) error {
+func (f *numberField) Decode(target interface{}, val interface{}) error {
 	ps := reflect.ValueOf(target)
 	s := ps.Elem()
 
@@ -145,10 +145,8 @@ func StructField(f, t string, s *Serializer) *structField {
 
 /*
 	Encode(interface{}) (interface{}, error) // Rename to Encode
-	SetMember(target interface{}, val interface{}) error
+	Decode(target interface{}, val interface{}) error
 	typeMatch(k reflect.Kind) bool
-
-SetMember is eigenlijk een Decode()
 
 */
 
@@ -156,7 +154,7 @@ func (f *structField) Encode(v interface{}) (interface{}, error) {
 	fmt.Printf("###### %#v\n", f.s)
 	return f.s.EncodeBase(v)
 }
-func (f *structField) SetMember(target interface{}, val interface{}) error {
+func (f *structField) Decode(target interface{}, val interface{}) error {
 	// This should create and return a new instance of whatever type we're tied to.
 	// will this recursively call deserialization?
 	// v might be a nil. If it is, create new instance.

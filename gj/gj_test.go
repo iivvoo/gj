@@ -205,9 +205,7 @@ func TestSerializerDeserialize(t *testing.T) {
 		s := S{}
 		err = sSerializer.Decode([]byte(`{"a":"Hello","q":{"aa":"World!"}}`), &s)
 		assert.NoError(err)
-		// This fails because s.Q == nil
 		assert.Equal("World!", s.Q.A)
-
 	})
 }
 
