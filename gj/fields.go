@@ -143,31 +143,14 @@ func StructField(f, t string, s *Serializer) *structField {
 	return &structField{&BaseField{f, t}, s, nil}
 }
 
-/*
-	Encode(interface{}) (interface{}, error) // Rename to Encode
-	Decode(target interface{}, val interface{}) error
-	typeMatch(k reflect.Kind) bool
-
-*/
-
 func (f *structField) Encode(v interface{}) (interface{}, error) {
-	fmt.Printf("###### %#v\n", f.s)
 	return f.s.EncodeBase(v)
 }
 func (f *structField) Decode(target interface{}, val interface{}) error {
-	// This should create and return a new instance of whatever type we're tied to.
-	// will this recursively call deserialization?
-	// v might be a nil. If it is, create new instance.
-	// If not, just use it, since we may just selectively overwrite fields! XXX
-	/*
-		target is de container. f.f tells us which field we're working on
-
-	*/
 
 	ps := reflect.ValueOf(target)
 	s := ps.Elem() // Assumes pointer
 
-	// So this is an addressable field, not a struct field
 	structField := s.FieldByName(f.f)
 	if !structField.CanSet() {
 		// unlikely if we properly validate when creating the serializer
