@@ -127,6 +127,7 @@ func TestSerialization(t *testing.T) {
 		assert.Equal(`{"a":"Hello","q":{"aa":"World"}}`, string(res))
 
 	})
+	// XXX Test serializing nested null
 }
 func TestSerializerTypeMatch(t *testing.T) {
 	type A struct{ A string }
@@ -202,10 +203,10 @@ func TestSerializerDeserialize(t *testing.T) {
 		assert.NoError(err)
 
 		s := S{}
-		err = sSerializer.Decode([]byte(`{"a":"Hello","q":{"aa":"World"}}`), &s)
+		err = sSerializer.Decode([]byte(`{"a":"Hello","q":{"aa":"World!"}}`), &s)
 		assert.NoError(err)
 		// This fails because s.Q == nil
-		// assert.Equal("World!", s.Q.A)
+		assert.Equal("World!", s.Q.A)
 
 	})
 }

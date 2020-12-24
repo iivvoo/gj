@@ -99,6 +99,34 @@ var ErrDifferentType = errors.New("target is not of same type")
 // ErrArrayNotSupported is returned if an attempt is made to deserialze a non-object json structure, e.g. `[1,2]`
 var ErrArrayNotSupported = errors.New("(de)serialization of pure json arrays not supported")
 
+func (s *Serializer) DecodeBase(val interface{}, target interface{}) error {
+	targetMap, ok := val.(map[string]interface{})
+	if !ok {
+		return ErrArrayNotSupported
+	}
+
+	// XXX Deal with PTR?
+	targetType := reflect.TypeOf(target)
+
+	if targetType != s.forType {
+		return ErrDifferentType
+	}
+	// Start decoding. Look specifically at the fields in the serializer in stead of everything
+	// in the returned json.
+
+	for _, f := range s.fieldmap {
+		// targetmap is effectively what json.Unmarshal produced as a map[string]interface{}
+		if v, found := targetMap[f.ToName()]; found {
+			// So v is the actual value decoded
+			if err := f.SetMember(target, v); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 // Decode decodes `raw` into `target` which must be the same type as where the serialized
 // was created for
 func (s *Serializer) Decode(raw []byte, target interface{}) error {
@@ -109,28 +137,7 @@ func (s *Serializer) Decode(raw []byte, target interface{}) error {
 	if err := json.Unmarshal(raw, &any); err != nil {
 		return err
 	}
-	targetMap, ok := any.(map[string]interface{})
-	if !ok {
-		return ErrArrayNotSupported
-	}
-
-	targetType := reflect.TypeOf(target)
-
-	if targetType != s.forType {
-		return ErrDifferentType
-	}
-	// Start decoding. Look specifically at the fields in the serializer in stead of everything
-	// in the returned json.
-
-	for _, f := range s.fieldmap {
-		if v, found := targetMap[f.ToName()]; found {
-			if err := f.SetMember(target, v); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
+	return s.DecodeBase(any, target)
 }
 
 // NewSerializerTemplate creates a new SerializerTemplate based on the supplied (fields) config

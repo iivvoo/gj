@@ -136,10 +136,11 @@ func (f *numberField) typeMatch(k reflect.Type) bool {
 type structField struct {
 	*BaseField
 	s *Serializer
+	t reflect.Type
 }
 
 func StructField(f, t string, s *Serializer) *structField {
-	return &structField{&BaseField{f, t}, s}
+	return &structField{&BaseField{f, t}, s, nil}
 }
 
 /*
@@ -151,14 +152,40 @@ SetMember is eigenlijk een Decode()
 
 */
 
-func (s *structField) Encode(v interface{}) (interface{}, error) {
-	fmt.Printf("###### %#v\n", s.s)
-	return s.s.EncodeBase(v)
+func (f *structField) Encode(v interface{}) (interface{}, error) {
+	fmt.Printf("###### %#v\n", f.s)
+	return f.s.EncodeBase(v)
 }
-func (s *structField) SetMember(target interface{}, val interface{}) error {
+func (f *structField) SetMember(target interface{}, val interface{}) error {
+	// This should create and return a new instance of whatever type we're tied to.
+	// will this recursively call deserialization?
+	// v might be a nil. If it is, create new instance.
+	// If not, just use it, since we may just selectively overwrite fields! XXX
+	/*
+		target is de container. f.f tells us which field we're working on
+
+	*/
+
+	ps := reflect.ValueOf(target)
+	s := ps.Elem() // Assumes pointer
+
+	// So this is an addressable field, not a struct field
+	structField := s.FieldByName(f.f)
+	if !structField.CanSet() {
+		// unlikely if we properly validate when creating the serializer
+		return ErrFieldUnsettable
+	}
+
+	if structField.IsNil() {
+		structField.Set(reflect.New(f.t))
+		// We will want to set this value on s
+	}
+	f.s.DecodeBase(val, structField.Interface()) // swapped order, weird?
+
 	return nil
 }
-func (s *structField) typeMatch(k reflect.Type) bool {
+
+func (f *structField) typeMatch(k reflect.Type) bool {
 	// So it's a struct, but is it the expected type? E.g. main.FooStruct
 	// could even be a while?
 	if k.Kind() == reflect.Ptr {
@@ -166,5 +193,6 @@ func (s *structField) typeMatch(k reflect.Type) bool {
 		k = k.Elem()
 	}
 	fmt.Printf("%T %v %v\n", k, k, k.Kind())
+	f.t = k
 	return k.Kind() == reflect.Struct
 }
