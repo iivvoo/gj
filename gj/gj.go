@@ -11,17 +11,27 @@ type SerializerTemplate struct {
 	fields []Field
 }
 
-type Serializer struct {
-	forType  reflect.Type
-	template *SerializerTemplate
-	// some sort of map
-	fieldmap  map[string]Field
-	fieldmap2 map[string]reflect.Type
+// NewSerializerTemplate creates a new SerializerTemplate based on the supplied (fields) config
+func NewSerializerTemplate(fields ...Field) (*SerializerTemplate, error) {
+	st := &SerializerTemplate{}
+	for _, f := range fields {
+		if err := st.Add(f); err != nil {
+			return nil, err
+		}
+	}
+	return st, nil
 }
 
-var ErrMemberFieldNotFound = errors.New("Member field not found on struct")
-var ErrMemberFieldTypeMismatch = errors.New("Serializer field type mismatch Member field")
-var ErrDuplicateField = errors.New("Duplicate field")
+// Add adds a field to the Template. It checks if the field is not a duplicate
+func (st *SerializerTemplate) Add(newField Field) error {
+	for _, f := range st.fields {
+		if f.FromName() == newField.FromName() {
+			return ErrDuplicateField
+		}
+	}
+	st.fields = append(st.fields, newField)
+	return nil
+}
 
 // Serializer builds a serializer out of this template
 func (st *SerializerTemplate) Serializer(d interface{}) (*Serializer, error) {
@@ -30,29 +40,46 @@ func (st *SerializerTemplate) Serializer(d interface{}) (*Serializer, error) {
 
 	s := &Serializer{template: st,
 		fieldmap:  make(map[string]Field),
-		fieldmap2: make(map[string]reflect.Type)}
+		prop2type: make(map[string]reflect.Type)}
 
 	// Elem() assume's it's a pointer.
 	e := reflect.TypeOf(d).Elem()
 	s.forType = reflect.TypeOf(d)
 	// Iterate over the serializer fields and store them in a map
 	for _, f := range st.fields {
+		// This would mean the duplicate was already in the template,
+		// we should assert it there?
+
 		if _, exists := s.fieldmap[f.FromName()]; exists {
 			return nil, ErrDuplicateField
 		}
 		s.fieldmap[f.FromName()] = f
 		ef, found := e.FieldByName(f.FromName())
 		if !found {
+			// it would be nice to include which field wasn't found
 			return nil, ErrMemberFieldNotFound
 		}
+		// this might modify the field, not good
 		if !f.typeMatch(ef.Type) {
 			return nil, ErrMemberFieldTypeMismatch
 		}
-		s.fieldmap2[f.FromName()] = ef.Type
+		s.prop2type[f.FromName()] = ef.Type
 	}
 
 	return s, nil
 }
+
+type Serializer struct {
+	forType  reflect.Type
+	template *SerializerTemplate
+	// some sort of map
+	fieldmap  map[string]Field
+	prop2type map[string]reflect.Type
+}
+
+var ErrMemberFieldNotFound = errors.New("Member field not found on struct")
+var ErrMemberFieldTypeMismatch = errors.New("Serializer field type mismatch Member field")
+var ErrDuplicateField = errors.New("Duplicate field")
 
 func (s *Serializer) EncodeBase(d interface{}) (interface{}, error) {
 	targetType := reflect.TypeOf(d)
@@ -67,7 +94,7 @@ func (s *Serializer) EncodeBase(d interface{}) (interface{}, error) {
 	collector := make(map[string]interface{})
 
 	for name, f := range s.fieldmap {
-		_, found := s.fieldmap2[name]
+		_, found := s.prop2type[name]
 		if !found {
 			panic("Internal Error: Encode not found " + name)
 		}
@@ -149,11 +176,4 @@ func (s *Serializer) Decode(raw []byte, target interface{}) error {
 		return err
 	}
 	return s.DecodeBase(any, target)
-}
-
-// NewSerializerTemplate creates a new SerializerTemplate based on the supplied (fields) config
-func NewSerializerTemplate(fields ...Field) *SerializerTemplate {
-	return &SerializerTemplate{
-		fields: fields,
-	}
 }

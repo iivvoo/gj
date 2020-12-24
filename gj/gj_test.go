@@ -57,30 +57,38 @@ func TestSerializerCreation(t *testing.T) {
 	t.Run("Test simple success", func(t *testing.T) {
 		assert := assert.New(t)
 
-		_, err := NewSerializerTemplate(StringField("A", "a")).Serializer(&struct{ A string }{})
+		tpl, err := NewSerializerTemplate(StringField("A", "a"))
+		assert.NoError(err)
+		_, err = tpl.Serializer(&struct{ A string }{})
 		assert.NoError(err)
 	})
 	t.Run("Test duplicate field", func(t *testing.T) {
 		assert := assert.New(t)
 
-		_, err := NewSerializerTemplate(StringField("A", "a"), StringField("A", "b")).Serializer(&struct{ A string }{})
+		_, err := NewSerializerTemplate(StringField("A", "a"), StringField("A", "b"))
 		assert.Error(err)
 		assert.EqualValues(ErrDuplicateField, err)
 	})
 	t.Run("Test missing member", func(t *testing.T) {
 		assert := assert.New(t)
 
-		_, err := NewSerializerTemplate(StringField("A", "a")).Serializer(&struct{}{})
+		tpl, err := NewSerializerTemplate(StringField("A", "a"))
+		assert.NoError(err)
+		_, err = tpl.Serializer(&struct{}{})
 		assert.Error(err)
 		assert.EqualValues(ErrMemberFieldNotFound, err)
 	})
 	t.Run("Test type mismatch", func(t *testing.T) {
 		assert := assert.New(t)
 
-		_, err := NewSerializerTemplate(StringField("A", "a")).Serializer(&struct{ A int }{})
+		tpl, err := NewSerializerTemplate(StringField("A", "a"))
+		assert.NoError(err)
+		_, err = tpl.Serializer(&struct{ A int }{})
 		assert.Error(err)
 		assert.EqualValues(ErrMemberFieldTypeMismatch, err)
 	})
+	// Test that fields can be added
+	// Test that duplication cannot be added
 }
 
 func TestSerialization(t *testing.T) {
@@ -91,7 +99,9 @@ func TestSerialization(t *testing.T) {
 			A string
 			B int
 		}
-		serializer, err := NewSerializerTemplate(StringField("A", "a"), NumberField("B", "x")).Serializer(&S{})
+		tpl, err := NewSerializerTemplate(StringField("A", "a"), NumberField("B", "x"))
+		assert.NoError(err)
+		serializer, err := tpl.Serializer(&S{})
 		assert.NoError(err)
 
 		res, err := serializer.Encode(&S{"Hello", 42})
@@ -111,12 +121,14 @@ func TestSerialization(t *testing.T) {
 			A string
 			Q *Q
 		}
-		qTemplate := NewSerializerTemplate(StringField("A", "aa"))
+		qTemplate, err := NewSerializerTemplate(StringField("A", "aa"))
+		assert.NoError(err)
 		qSerializer, err := qTemplate.Serializer(&Q{})
 		assert.NoError(err)
 		assert.NotNil(qSerializer)
 
-		sTemplate := NewSerializerTemplate(StringField("A", "a"), StructField("Q", "q", qSerializer))
+		sTemplate, err := NewSerializerTemplate(StringField("A", "a"), StructField("Q", "q", qSerializer))
+		assert.NoError(err)
 		sSerializer, err := sTemplate.Serializer(&S{})
 		assert.NoError(err)
 		assert.NotNil(sSerializer)
@@ -136,7 +148,9 @@ func TestSerializerTypeMatch(t *testing.T) {
 	t.Run("Test type match", func(t *testing.T) {
 		assert := assert.New(t)
 
-		serializer, err := NewSerializerTemplate(StringField("A", "a")).Serializer(&A{})
+		tpl, err := NewSerializerTemplate(StringField("A", "a"))
+		assert.NoError(err)
+		serializer, err := tpl.Serializer(&A{})
 		assert.NoError(err)
 		a := A{}
 		err = serializer.Decode([]byte(`{"a":"x"}`), &a)
@@ -145,7 +159,9 @@ func TestSerializerTypeMatch(t *testing.T) {
 	t.Run("Test type mismatch", func(t *testing.T) {
 		assert := assert.New(t)
 
-		serializer, err := NewSerializerTemplate(StringField("A", "a")).Serializer(&A{})
+		tpl, err := NewSerializerTemplate(StringField("A", "a"))
+		assert.NoError(err)
+		serializer, err := tpl.Serializer(&A{})
 		assert.NoError(err)
 		b := B{}
 		err = serializer.Decode([]byte(`{"a":"x"}`), &b)
@@ -160,7 +176,9 @@ func TestSerializerDeserialize(t *testing.T) {
 		assert := assert.New(t)
 		type A struct{ A string }
 
-		serializer, err := NewSerializerTemplate(StringField("A", "a")).Serializer(&A{})
+		tpl, err := NewSerializerTemplate(StringField("A", "a"))
+		assert.NoError(err)
+		serializer, err := tpl.Serializer(&A{})
 		assert.NoError(err)
 
 		a := A{}
@@ -174,7 +192,9 @@ func TestSerializerDeserialize(t *testing.T) {
 		assert := assert.New(t)
 		type A struct{ A string }
 
-		serializer, err := NewSerializerTemplate(StringField("A", "a")).Serializer(&A{})
+		tpl, err := NewSerializerTemplate(StringField("A", "a"))
+		assert.NoError(err)
+		serializer, err := tpl.Serializer(&A{})
 		assert.NoError(err)
 
 		err = serializer.Decode([]byte(`{"a":"A"}`), A{})
@@ -185,7 +205,9 @@ func TestSerializerDeserialize(t *testing.T) {
 		assert := assert.New(t)
 		type A struct{ A string }
 
-		serializer, err := NewSerializerTemplate(StringField("A", "a")).Serializer(&A{})
+		tpl, err := NewSerializerTemplate(StringField("A", "a"))
+		assert.NoError(err)
+		serializer, err := tpl.Serializer(&A{})
 		assert.NoError(err)
 
 		var a *A
@@ -199,7 +221,9 @@ func TestSerializerDeserialize(t *testing.T) {
 		assert := assert.New(t)
 		type A struct{ A string }
 
-		serializer, err := NewSerializerTemplate(StringField("A", "a")).Serializer(&A{})
+		tpl, err := NewSerializerTemplate(StringField("A", "a"))
+		assert.NoError(err)
+		serializer, err := tpl.Serializer(&A{})
 		assert.NoError(err)
 
 		a := A{}
@@ -220,11 +244,13 @@ func TestSerializerDeserialize(t *testing.T) {
 			A string
 			Q *Q
 		}
-		qTemplate := NewSerializerTemplate(StringField("A", "aa"))
+		qTemplate, err := NewSerializerTemplate(StringField("A", "aa"))
+		assert.NoError(err)
 		qSerializer, err := qTemplate.Serializer(&Q{})
 		assert.NoError(err)
 
-		sTemplate := NewSerializerTemplate(StringField("A", "a"), StructField("Q", "q", qSerializer))
+		sTemplate, err := NewSerializerTemplate(StringField("A", "a"), StructField("Q", "q", qSerializer))
+		assert.NoError(err)
 		sSerializer, err := sTemplate.Serializer(&S{})
 		assert.NoError(err)
 
@@ -245,11 +271,13 @@ func TestSerializerDeserialize(t *testing.T) {
 			A string
 			Q *Q
 		}
-		qTemplate := NewSerializerTemplate(StringField("A", "aa"))
+		qTemplate, err := NewSerializerTemplate(StringField("A", "aa"))
+		assert.NoError(err)
 		qSerializer, err := qTemplate.Serializer(&Q{})
 		assert.NoError(err)
 
-		sTemplate := NewSerializerTemplate(StringField("A", "a"), StructField("Q", "q", qSerializer))
+		sTemplate, err := NewSerializerTemplate(StringField("A", "a"), StructField("Q", "q", qSerializer))
+		assert.NoError(err)
 		sSerializer, err := sTemplate.Serializer(&S{})
 		assert.NoError(err)
 
@@ -268,11 +296,13 @@ func TestSerializerDeserialize(t *testing.T) {
 			A string
 			Q Q
 		}
-		qTemplate := NewSerializerTemplate(StringField("A", "aa"))
+		qTemplate, err := NewSerializerTemplate(StringField("A", "aa"))
+		assert.NoError(err)
 		qSerializer, err := qTemplate.Serializer(&Q{})
 		assert.NoError(err)
 
-		sTemplate := NewSerializerTemplate(StringField("A", "a"), StructField("Q", "q", qSerializer))
+		sTemplate, err := NewSerializerTemplate(StringField("A", "a"), StructField("Q", "q", qSerializer))
+		assert.NoError(err)
 		sSerializer, err := sTemplate.Serializer(&S{})
 		assert.NoError(err)
 
