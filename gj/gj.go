@@ -127,12 +127,23 @@ func (s *Serializer) DecodeBase(val interface{}, target interface{}) error {
 	return nil
 }
 
+var ErrNotAPointer = errors.New("Deserializing into a non-pointer does not make sense")
+var ErrNilPointer = errors.New("Deserializing into a nil-pointer does not make sense")
+
 // Decode decodes `raw` into `target` which must be the same type as where the serialized
 // was created for
 func (s *Serializer) Decode(raw []byte, target interface{}) error {
 	// we could probably create an instance of the type ourselves but,
 	// - you may want to (partially) deserialize into an existing object
 	// - you don't want to type assert the generic interface{} return value
+
+	// passing anything else than a pointer does not make sense
+	if reflect.ValueOf(target).Kind() != reflect.Ptr {
+		return ErrNotAPointer
+	}
+	if reflect.ValueOf(target).IsNil() {
+		return ErrNilPointer
+	}
 	var any interface{}
 	if err := json.Unmarshal(raw, &any); err != nil {
 		return err

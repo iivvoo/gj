@@ -170,6 +170,31 @@ func TestSerializerDeserialize(t *testing.T) {
 		assert.Equal("A", a.A)
 	})
 
+	t.Run("Test deserialize into non-pointer", func(t *testing.T) {
+		assert := assert.New(t)
+		type A struct{ A string }
+
+		serializer, err := NewSerializerTemplate(StringField("A", "a")).Serializer(&A{})
+		assert.NoError(err)
+
+		err = serializer.Decode([]byte(`{"a":"A"}`), A{})
+		assert.Error(err)
+		assert.Equal(err, ErrNotAPointer)
+	})
+	t.Run("Test deserialize into nil", func(t *testing.T) {
+		assert := assert.New(t)
+		type A struct{ A string }
+
+		serializer, err := NewSerializerTemplate(StringField("A", "a")).Serializer(&A{})
+		assert.NoError(err)
+
+		var a *A
+
+		err = serializer.Decode([]byte(`{"a":"A"}`), a)
+		assert.Error(err)
+		assert.Equal(err, ErrNilPointer)
+	})
+
 	t.Run("Test wrong data type", func(t *testing.T) {
 		assert := assert.New(t)
 		type A struct{ A string }
@@ -184,7 +209,33 @@ func TestSerializerDeserialize(t *testing.T) {
 		assert.Error(err)
 		assert.EqualValues(ErrFieldDataIncorrectType, err)
 	})
-	t.Run("Test nesting", func(t *testing.T) {
+	t.Run("Test nesting with existing data", func(t *testing.T) {
+		assert := assert.New(t)
+
+		type Q struct {
+			A string
+			B int
+		}
+		type S struct {
+			A string
+			Q *Q
+		}
+		qTemplate := NewSerializerTemplate(StringField("A", "aa"))
+		qSerializer, err := qTemplate.Serializer(&Q{})
+		assert.NoError(err)
+
+		sTemplate := NewSerializerTemplate(StringField("A", "a"), StructField("Q", "q", qSerializer))
+		sSerializer, err := sTemplate.Serializer(&S{})
+		assert.NoError(err)
+
+		s := S{A: "I'm a", Q: &Q{A: "old value", B: 42}}
+		err = sSerializer.Decode([]byte(`{"a":"Hello","q":{"aa":"World!"}}`), &s)
+		assert.NoError(err)
+		assert.Equal("World!", s.Q.A)
+		assert.EqualValues(42, s.Q.B, "Field not in serializer should remain untouched")
+	})
+
+	t.Run("Test nesting with nil", func(t *testing.T) {
 		assert := assert.New(t)
 
 		type Q struct {
@@ -193,6 +244,29 @@ func TestSerializerDeserialize(t *testing.T) {
 		type S struct {
 			A string
 			Q *Q
+		}
+		qTemplate := NewSerializerTemplate(StringField("A", "aa"))
+		qSerializer, err := qTemplate.Serializer(&Q{})
+		assert.NoError(err)
+
+		sTemplate := NewSerializerTemplate(StringField("A", "a"), StructField("Q", "q", qSerializer))
+		sSerializer, err := sTemplate.Serializer(&S{})
+		assert.NoError(err)
+
+		s := S{}
+		err = sSerializer.Decode([]byte(`{"a":"Hello","q":{"aa":"World!"}}`), &s)
+		assert.NoError(err)
+		assert.Equal("World!", s.Q.A)
+	})
+	t.Run("Test nesting, not a pointer embed ", func(t *testing.T) {
+		assert := assert.New(t)
+
+		type Q struct {
+			A string
+		}
+		type S struct {
+			A string
+			Q Q
 		}
 		qTemplate := NewSerializerTemplate(StringField("A", "aa"))
 		qSerializer, err := qTemplate.Serializer(&Q{})

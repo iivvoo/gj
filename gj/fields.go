@@ -157,9 +157,14 @@ func (f *structField) Decode(target interface{}, val interface{}) error {
 		return ErrFieldUnsettable
 	}
 
-	if structField.IsNil() {
-		structField.Set(reflect.New(f.t))
-		// We will want to set this value on s
+	if structField.Kind() == reflect.Ptr {
+		if structField.IsNil() {
+			structField.Set(reflect.New(f.t))
+			// We will want to set this value on s
+		}
+	} else {
+		// We'll need a pointer anyway
+		structField = structField.Addr()
 	}
 	f.s.DecodeBase(val, structField.Interface()) // swapped order, weird?
 
