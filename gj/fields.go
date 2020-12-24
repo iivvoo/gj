@@ -147,31 +147,30 @@ func (f *structField) Encode(v interface{}) (interface{}, error) {
 }
 func (f *structField) Decode(target interface{}, val interface{}) error {
 
-	ps := reflect.ValueOf(target)
-	s := ps.Elem() // Assumes pointer
+	// We need the Value to set the new value, and the Type to create a new instance, if necessary
 
-	structField := s.FieldByName(f.f)
-	if !structField.CanSet() {
+	ps := reflect.ValueOf(target)
+	s := ps.Elem() // Assumes pointer, which it must be anyway if we want to be able to change it
+
+	fieldValue := s.FieldByName(f.f)
+	if !fieldValue.CanSet() {
 		// unlikely if we properly validate when creating the serializer
 		return ErrFieldUnsettable
 	}
 
-	if structField.Kind() == reflect.Ptr {
-		if structField.IsNil() {
-			to := reflect.TypeOf(target).Elem()
-			sf, found := to.FieldByName(f.FromName())
-			if !found {
+	if fieldValue.Kind() == reflect.Ptr {
+		if fieldValue.IsNil() {
+			fieldType, found := reflect.TypeOf(target).Elem().FieldByName(f.FromName())
+			if !found { // should be unlikely at this point
 				return ErrMemberFieldNotFound
 			}
-			structField.Set(reflect.New(sf.Type.Elem()))
-			// structField.Set(reflect.New(f.t))
-			// We will want to set this value on s
+			fieldValue.Set(reflect.New(fieldType.Type.Elem()))
 		}
 	} else {
 		// We'll need a pointer anyway
-		structField = structField.Addr()
+		fieldValue = fieldValue.Addr()
 	}
-	f.s.DecodeBase(val, structField.Interface()) // swapped order, weird?
+	f.s.DecodeBase(val, fieldValue.Interface()) // swapped order, weird?
 
 	return nil
 }
