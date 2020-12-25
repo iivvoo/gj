@@ -3,7 +3,6 @@ package gj
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"reflect"
 )
 
@@ -39,6 +38,7 @@ func (st *SerializerTemplate) Serializer(d interface{}) (*Serializer, error) {
 	// Everything will probably be recursive, e.g. Fields will validate as well
 
 	s := &Serializer{template: st,
+		// As long as we don't mutate we can use the template
 		fieldmap:  make(map[string]Field),
 		prop2type: make(map[string]reflect.Type)}
 
@@ -78,7 +78,6 @@ var ErrDuplicateField = errors.New("Duplicate field")
 func (s *Serializer) EncodeBase(d interface{}) (interface{}, error) {
 	targetType := reflect.TypeOf(d)
 
-	fmt.Printf("-> %#v %#v\n", s, s.forType)
 	if targetType != s.forType {
 		return nil, ErrDifferentType
 	}

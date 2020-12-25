@@ -19,40 +19,6 @@ type SampleStruct struct {
 	Nest *NestedStruct
 }
 
-// func TestMakeJSON(t *testing.T) {
-// 	// eerst wat random json bouwen en dan mee spelen voor deserialisatie
-// 	s := &SampleStruct{
-// 		Name: "Sample Struct",
-// 		Num:  42,
-// 		Nest: &NestedStruct{
-// 			Name:    "Nested Struct",
-// 			Numbers: []int{1, 1, 2, 3, 5, 8, 13},
-// 			When:    time.Now(),
-// 		},
-// 	}
-// 	data, _ := json.Marshal(s)
-// 	fmt.Println(string(data))
-// }
-
-// func TestGJExp(t *testing.T) {
-// 	j := `{"Name":"Sample Struct","Num":42,"Nest":{"Name":"Nested Struct","Numbers":[1,1,2,3,5,8,13],"When":"2020-11-27T10:45:55.287389483+01:00"}}`
-
-// 	j = `[1,2,3]`
-// 	// Would this work for a plain [] array result?
-// 	// No, so deserialze into interface{} and assert it into a map or array
-// 	var objmap map[string]interface{}
-// 	if err := json.Unmarshal([]byte(j), &objmap); err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	fmt.Printf("%v\n", objmap)
-// 	for k, v := range objmap {
-// 		fmt.Printf("%s -> %v | %#v |  %+v | type: %T\n", k, v, v, v, v)
-// 	}
-// 	for k, v := range objmap["Nest"].(map[string]interface{}) {
-// 		fmt.Printf("%s -> %v | %#v |  %+v | type: %T\n", k, v, v, v, v)
-// 	}
-// }
-
 func TestSerializerCreation(t *testing.T) {
 	t.Run("Test simple success", func(t *testing.T) {
 		assert := assert.New(t)
@@ -137,9 +103,34 @@ func TestSerialization(t *testing.T) {
 		assert.NoError(err)
 
 		assert.Equal(`{"a":"Hello","q":{"aa":"World"}}`, string(res))
-
 	})
-	// XXX Test serializing nested null
+	t.Run("Test nesting, nil", func(t *testing.T) {
+		assert := assert.New(t)
+
+		type Q struct {
+			A string
+		}
+		type S struct {
+			A string
+			Q *Q
+		}
+		qTemplate, err := NewSerializerTemplate(StringField("A", "aa"))
+		assert.NoError(err)
+		qSerializer, err := qTemplate.Serializer(&Q{})
+		assert.NoError(err)
+		assert.NotNil(qSerializer)
+
+		sTemplate, err := NewSerializerTemplate(StringField("A", "a"), StructField("Q", "q", qSerializer))
+		assert.NoError(err)
+		sSerializer, err := sTemplate.Serializer(&S{})
+		assert.NoError(err)
+		assert.NotNil(sSerializer)
+
+		res, err := sSerializer.Encode(&S{"Hello", nil})
+		assert.NoError(err)
+
+		assert.Equal(`{"a":"Hello","q":null}`, string(res))
+	})
 }
 func TestSerializerTypeMatch(t *testing.T) {
 	type A struct{ A string }
@@ -311,11 +302,29 @@ func TestSerializerDeserialize(t *testing.T) {
 		assert.NoError(err)
 		assert.Equal("World!", s.Q.A)
 	})
-}
+	t.Run("Test nesting, nil ", func(t *testing.T) {
+		assert := assert.New(t)
 
-/*
- * Important corner cases:
- *
- * - Do we need to HTML-safe encode json? (see encoding/json)
- * - Properly escape keys and strings (encoding/json/encode.go encodeState:string
- */
+		type Q struct {
+			A string
+		}
+		type S struct {
+			A string
+			Q *Q
+		}
+		qTemplate, err := NewSerializerTemplate(StringField("A", "aa"))
+		assert.NoError(err)
+		qSerializer, err := qTemplate.Serializer(&Q{})
+		assert.NoError(err)
+
+		sTemplate, err := NewSerializerTemplate(StringField("A", "a"), StructField("Q", "q", qSerializer))
+		assert.NoError(err)
+		sSerializer, err := sTemplate.Serializer(&S{})
+		assert.NoError(err)
+
+		s := S{}
+		err = sSerializer.Decode([]byte(`{"a":"Hello","q":null}`), &s)
+		assert.NoError(err)
+		assert.Nil(s.Q)
+	})
+}

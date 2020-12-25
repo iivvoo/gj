@@ -177,7 +177,6 @@ func (f *structField) Decode(target interface{}, val interface{}) error {
 
 func (f *structField) typeMatch(k reflect.Type) bool {
 	// So it's a struct, but is it the expected type? E.g. main.FooStruct
-	// could even be a while?
 	if k.Kind() == reflect.Ptr {
 		k = k.Elem()
 	}
