@@ -147,6 +147,15 @@ func (f *structField) Encode(v interface{}) (interface{}, error) {
 }
 func (f *structField) Decode(target interface{}, val interface{}) error {
 
+	// If the value is nil (so null in the json), we're done. We could also make this
+	// optional and make the field decode null into an empty struct
+	if val == nil {
+		return nil
+	}
+
+	// The value is not nil, so there's data that needs to be decoded. If we need to decode
+	// into a struct, we need to make sure there's a struct instantiated in target to hold the data
+
 	// We need the Value to set the new value, and the Type to create a new instance, if necessary
 
 	ps := reflect.ValueOf(target)
