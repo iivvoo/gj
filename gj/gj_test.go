@@ -131,6 +131,26 @@ func TestSerialization(t *testing.T) {
 
 		assert.Equal(`{"a":"Hello","q":null}`, string(res))
 	})
+	t.Run("Test wrong struct type", func(t *testing.T) {
+		assert := assert.New(t)
+
+		type S1 struct {
+			A string
+		}
+		type S2 struct {
+			A string
+		}
+		tpl, err := NewSerializerTemplate(StringField("A", "a"), NumberField("B", "x"))
+		assert.NoError(err)
+		serializer, err := tpl.Serializer(&S1{})
+		assert.NoError(err)
+
+		// Cannot serialize S2 using serializer created for S1, even if identical
+		_, err = serializer.Encode(&S2{"Hello"})
+		assert.Error(err)
+		// XXX Assert error
+
+	})
 }
 func TestSerializerTypeMatch(t *testing.T) {
 	type A struct{ A string }
@@ -326,5 +346,22 @@ func TestSerializerDeserialize(t *testing.T) {
 		err = sSerializer.Decode([]byte(`{"a":"Hello","q":null}`), &s)
 		assert.NoError(err)
 		assert.Nil(s.Q)
+	})
+	t.Run("Test wrong struct type", func(t *testing.T) {
+		assert := assert.New(t)
+		type S1 struct{ A string }
+		type S2 struct{ A string }
+
+		tpl, err := NewSerializerTemplate(StringField("A", "a"))
+		assert.NoError(err)
+		serializer, err := tpl.Serializer(&S1{})
+		assert.NoError(err)
+
+		s := S2{}
+
+		// Can't deserialize int into string
+		err = serializer.Decode([]byte(`{"a":1}`), &s)
+		assert.Error(err)
+		assert.EqualValues(ErrFieldDataIncorrectType, err)
 	})
 }
