@@ -25,6 +25,7 @@ func NewSerializerTemplate(fields ...Field) (*SerializerTemplate, error) {
 func (st *SerializerTemplate) Add(newField Field) error {
 	for _, f := range st.fields {
 		if f.FromName() == newField.FromName() {
+			// would be nice to add the duplicate field key to the error
 			return ErrDuplicateField
 		}
 	}
