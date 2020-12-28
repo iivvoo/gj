@@ -93,11 +93,16 @@ func (s *Serializer) EncodeBase(d interface{}) (interface{}, error) {
 			panic("Internal Error: Encode not found " + name)
 		}
 		ff := e.FieldByName(name)
-		val, err := f.Encode(ff.Interface())
-		if err != nil {
-			return nil, err
+		// Do not recurse into pointers if they're nil
+		if ff.Kind() != reflect.Ptr || !ff.IsNil() {
+			val, err := f.Encode(ff.Interface())
+			if err != nil {
+				return nil, err
+			}
+			collector[f.ToName()] = val
+		} else {
+			collector[f.ToName()] = nil
 		}
-		collector[f.ToName()] = val
 	}
 	return collector, nil
 }
