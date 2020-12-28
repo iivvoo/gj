@@ -53,3 +53,5 @@ See [LICENSE](LICENSE)
 ## Current status, history
 
 The code is currently pre-alpha and in a prototype stage. It's not suitable for production or development use. Many features are missing, API's will change and bugs will be present.
+
+A first usable alpha version should be available early januari 2021
