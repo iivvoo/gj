@@ -49,3 +49,7 @@ The toolkit is currently implemented on top of json.Marshal/json.Unmarshal, whic
 ## License
 
 See [LICENSE](LICENSE)
+
+## Current status, history
+
+The code is currently pre-alpha and in a prototype stage. It's not suitable for production or development use. Many features are missing, API's will change and bugs will be present.
