@@ -1,7 +1,6 @@
 package gj
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 )
@@ -13,18 +12,6 @@ type Field interface {
 	FromName() string
 	ToName() string
 }
-
-// ErrFieldDataIncorrectType means the json data does not match the field
-var ErrFieldDataIncorrectType = errors.New("Data is of incorrect type")
-
-// ErrFieldDataOverflow means the json data would overflow the field
-var ErrFieldDataOverflow = errors.New("Data would overflow field")
-
-// ErrFieldUnsettable means the field is not settable
-var ErrFieldUnsettable = errors.New("Field is not settable")
-
-// ErrFieldIncorrectType means the field does not match the expcted type (impossible?)
-var ErrFieldIncorrectType = errors.New("Field is of wrong type")
 
 type BaseField struct {
 	f string

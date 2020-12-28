@@ -140,7 +140,7 @@ func TestSerialization(t *testing.T) {
 		type S2 struct {
 			A string
 		}
-		tpl, err := NewSerializerTemplate(StringField("A", "a"), NumberField("B", "x"))
+		tpl, err := NewSerializerTemplate(StringField("A", "a"))
 		assert.NoError(err)
 		serializer, err := tpl.Serializer(&S1{})
 		assert.NoError(err)
@@ -148,7 +148,7 @@ func TestSerialization(t *testing.T) {
 		// Cannot serialize S2 using serializer created for S1, even if identical
 		_, err = serializer.Encode(&S2{"Hello"})
 		assert.Error(err)
-		// XXX Assert error
+		assert.Equal(ErrDifferentType, err)
 
 	})
 }
@@ -362,6 +362,6 @@ func TestSerializerDeserialize(t *testing.T) {
 		// Can't deserialize int into string
 		err = serializer.Decode([]byte(`{"a":1}`), &s)
 		assert.Error(err)
-		assert.EqualValues(ErrFieldDataIncorrectType, err)
+		assert.EqualValues(ErrDifferentType, err)
 	})
 }

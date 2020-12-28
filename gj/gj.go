@@ -2,7 +2,6 @@ package gj
 
 import (
 	"encoding/json"
-	"errors"
 	"reflect"
 )
 
@@ -72,10 +71,6 @@ type Serializer struct {
 	prop2type map[string]reflect.Type
 }
 
-var ErrMemberFieldNotFound = errors.New("Member field not found on struct")
-var ErrMemberFieldTypeMismatch = errors.New("Serializer field type mismatch Member field")
-var ErrDuplicateField = errors.New("Duplicate field")
-
 func (s *Serializer) EncodeBase(d interface{}) (interface{}, error) {
 	targetType := reflect.TypeOf(d)
 
@@ -119,12 +114,6 @@ func (s *Serializer) Encode(d interface{}) ([]byte, error) {
 	return encoded, err
 }
 
-// ErrDifferentType is returned if the target does not match the serializer type
-var ErrDifferentType = errors.New("target is not of same type")
-
-// ErrArrayNotSupported is returned if an attempt is made to deserialze a non-object json structure, e.g. `[1,2]`
-var ErrArrayNotSupported = errors.New("(de)serialization of pure json arrays not supported")
-
 func (s *Serializer) DecodeBase(val interface{}, target interface{}) error {
 	targetMap, ok := val.(map[string]interface{})
 	if !ok {
@@ -152,9 +141,6 @@ func (s *Serializer) DecodeBase(val interface{}, target interface{}) error {
 
 	return nil
 }
-
-var ErrNotAPointer = errors.New("Deserializing into a non-pointer does not make sense")
-var ErrNilPointer = errors.New("Deserializing into a nil-pointer does not make sense")
 
 // Decode decodes `raw` into `target` which must be the same type as where the serialized
 // was created for
