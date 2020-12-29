@@ -35,29 +35,20 @@ func (st *SerializerTemplate) Add(newField Field) error {
 // Serializer builds a serializer out of this template
 func (st *SerializerTemplate) Serializer(d interface{}) (*Serializer, error) {
 	// Validate nested serializers
-	// Everything will probably be recursive, e.g. Fields will validate as well
 
-	s := &Serializer{template: st,
-		// As long as we don't mutate we can use the template
-		fieldmap:  make(map[string]Field),
-		prop2type: make(map[string]reflect.Type)}
-
-	// Elem() assume's it's a pointer.
+	// Elem() assumes it's a pointer.
 	e := reflect.TypeOf(d).Elem()
-	s.forType = reflect.TypeOf(d)
-	// Iterate over the serializer fields and store them in a map
+	s := &Serializer{forType: reflect.TypeOf(d), template: st}
+
+	// Check if this template is suitable for the type `d` passed, which means the fields must
+	// exist and be type-compatible
 	for _, f := range st.fields {
-		s.fieldmap[f.FromName()] = f
-		ef, found := e.FieldByName(f.FromName())
-		if !found {
+		if ef, found := e.FieldByName(f.FromName()); !found {
 			// it would be nice to include which field wasn't found
 			return nil, ErrMemberFieldNotFound
-		}
-		// this might modify the field, not good
-		if !f.typeMatch(ef.Type) {
+		} else if !f.typeMatch(ef.Type) {
 			return nil, ErrMemberFieldTypeMismatch
 		}
-		s.prop2type[f.FromName()] = ef.Type
 	}
 
 	return s, nil
@@ -66,9 +57,6 @@ func (st *SerializerTemplate) Serializer(d interface{}) (*Serializer, error) {
 type Serializer struct {
 	forType  reflect.Type
 	template *SerializerTemplate
-	// some sort of map
-	fieldmap  map[string]Field
-	prop2type map[string]reflect.Type
 }
 
 func (s *Serializer) EncodeBase(d interface{}) (interface{}, error) {
@@ -82,12 +70,8 @@ func (s *Serializer) EncodeBase(d interface{}) (interface{}, error) {
 
 	collector := make(map[string]interface{})
 
-	for name, f := range s.fieldmap {
-		_, found := s.prop2type[name]
-		if !found {
-			panic("Internal Error: Encode not found " + name)
-		}
-		ff := e.FieldByName(name)
+	for _, f := range s.template.fields {
+		ff := e.FieldByName(f.FromName())
 		// Do not recurse into pointers if they're nil
 		if ff.Kind() != reflect.Ptr || !ff.IsNil() {
 			val, err := f.Encode(ff.Interface())
@@ -115,6 +99,7 @@ func (s *Serializer) Encode(d interface{}) ([]byte, error) {
 }
 
 func (s *Serializer) DecodeBase(val interface{}, target interface{}) error {
+
 	targetMap, ok := val.(map[string]interface{})
 	if !ok {
 		return ErrArrayNotSupported
@@ -129,8 +114,8 @@ func (s *Serializer) DecodeBase(val interface{}, target interface{}) error {
 	// Start decoding. Look specifically at the fields in the serializer in stead of everything
 	// in the returned json.
 
-	for _, f := range s.fieldmap {
-		// targetmap is effectively what json.Unmarshal produced as a map[string]interface{}
+	for _, f := range s.template.fields {
+		// targetMap is effectively what json.Unmarshal produced as a map[string]interface{}
 		if v, found := targetMap[f.ToName()]; found {
 			// So v is the actual value decoded
 			if err := f.Decode(target, v); err != nil {
