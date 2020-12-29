@@ -1,7 +1,5 @@
 package gj
 
-// la
-
 import (
 	"encoding/json"
 	"reflect"

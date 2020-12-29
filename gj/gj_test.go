@@ -11,7 +11,7 @@ import (
 type NestedStruct struct {
 	Name    string
 	Numbers []int
-	When    time.Time // flop
+	When    time.Time
 }
 type SampleStruct struct {
 	Name string
